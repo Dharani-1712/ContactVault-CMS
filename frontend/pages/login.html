@@ -8,54 +8,56 @@
 </head>
 <body>
 <div class="auth-page">
-  <!-- Left Panel -->
-  <div class="auth-left">
-    <div class="auth-hero-logo">Contact<span>Vault</span></div>
-    <p class="auth-hero-text">The smart way to manage, organise, and connect with every person that matters.</p>
-  </div>
+  <div class="auth-container">
+    <!-- Left Panel -->
+    <div class="auth-left">
+      <div class="auth-hero-logo">Contact<span>Vault</span></div>
+      <p class="auth-hero-text">The smart way to manage, organise, and connect with every person that matters.</p>
+    </div>
 
-  <!-- Right Panel -->
-  <div class="auth-right">
-    <div class="auth-form-wrapper">
-      <h1 class="auth-heading">Welcome back</h1>
-      <p class="auth-subheading">Sign in to your account</p>
+    <!-- Right Panel -->
+    <div class="auth-right">
+      <div class="auth-form-wrapper">
+        <h1 class="auth-heading" style="color: white;">Welcome back</h1>
+        <p class="auth-subheading" style="color: rgba(255,255,255,0.7);">Sign in to your account</p>
 
-      <!-- Role Toggle -->
-      <div class="role-toggle" id="roleToggle">
-        <div class="role-option selected" data-role="user" onclick="selectRole('user',this)">
-          <div class="role-option-icon">👤</div>
-          <div class="role-option-label">User</div>
+        <!-- Role Toggle -->
+        <div class="role-toggle" id="roleToggle">
+          <div class="role-option selected" data-role="user" onclick="selectRole('user',this)">
+            <div class="role-option-icon">👤</div>
+            <div class="role-option-label" style="color:white;">User</div>
+          </div>
+          <div class="role-option" data-role="admin" onclick="selectRole('admin',this)">
+            <div class="role-option-icon">🛡️</div>
+            <div class="role-option-label" style="color:white;">Admin</div>
+          </div>
         </div>
-        <div class="role-option" data-role="admin" onclick="selectRole('admin',this)">
-          <div class="role-option-icon">🛡️</div>
-          <div class="role-option-label">Admin</div>
+
+        <div id="errorMsg" class="form-error mb-4 hidden"></div>
+
+        <div class="form-group">
+          <label style="color:rgba(255,255,255,0.7);">Email Address</label>
+          <input type="email" id="email" placeholder="you@example.com" style="background:rgba(0,0,0,0.3); border-color:rgba(255,255,255,0.1); color:white;"/>
         </div>
+        <div class="form-group">
+          <label style="color:rgba(255,255,255,0.7);">Password</label>
+          <input type="password" id="password" placeholder="••••••••" style="background:rgba(0,0,0,0.3); border-color:rgba(255,255,255,0.1); color:white;"/>
+        </div>
+
+        <button class="btn btn-primary w-full btn-lg mt-2" id="loginBtn" onclick="handleLogin()">
+          Sign In
+        </button>
+
+        <div class="auth-divider" style="color:rgba(255,255,255,0.3);">or</div>
+
+        <button class="btn btn-secondary w-full" onclick="handleGoogleLogin()" style="background:rgba(255,255,255,0.1); color:white; border-color:rgba(255,255,255,0.2);">
+          <span>🔵</span> Continue with Google
+        </button>
+
+        <p class="auth-footer-text" style="color:rgba(255,255,255,0.6);">
+          Don't have an account? <a href="register.html" style="color:#3b82f6;">Create one →</a>
+        </p>
       </div>
-
-      <div id="errorMsg" class="form-error mb-4 hidden"></div>
-
-      <div class="form-group">
-        <label for="email">Email Address</label>
-        <input type="email" id="email" placeholder="you@example.com" />
-      </div>
-      <div class="form-group">
-        <label for="password">Password</label>
-        <input type="password" id="password" placeholder="••••••••" />
-      </div>
-
-      <button class="btn btn-primary w-full btn-lg mt-2" id="loginBtn" onclick="handleLogin()">
-        Sign In
-      </button>
-
-      <div class="auth-divider">or</div>
-
-      <button class="btn btn-secondary w-full" onclick="handleGoogleLogin()">
-        <span>🔵</span> Continue with Google
-      </button>
-
-      <p class="auth-footer-text">
-        Don't have an account? <a href="register.html">Create one →</a>
-      </p>
     </div>
   </div>
 </div>
@@ -70,7 +72,7 @@
     getAuth, signInWithEmailAndPassword, GoogleAuthProvider,
     signInWithPopup
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   // TODO: Replace with your Firebase config
   const firebaseConfig = {
@@ -153,6 +155,21 @@
     try {
       const provider = new GoogleAuthProvider();
       const { user } = await signInWithPopup(auth, provider);
+      
+      // Create user doc if not exists
+      const userRef = doc(db, 'users', user.uid);
+      const snap = await getDoc(userRef);
+      if (!snap.exists()) {
+        await setDoc(userRef, {
+          uid: user.uid,
+          name: user.displayName || 'Google User',
+          email: user.email,
+          role: selectedRole || 'user',
+          photoURL: user.photoURL || null,
+          createdAt: new Date().toISOString()
+        });
+      }
+
       localStorage.setItem('idToken', await user.getIdToken());
       await redirectByRole(user.uid);
     } catch (err) {
