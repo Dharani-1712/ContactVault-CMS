@@ -784,9 +784,10 @@
 
   // ── Activity Log ──────────────────────────────────────────────
   async function loadActivity() {
-    const q    = query(collection(db,'activityLogs'), where('userId','==',currentUser.uid), orderBy('createdAt','desc'), limit(50));
+    const q    = query(collection(db,'activityLogs'), where('userId','==',currentUser.uid));
     const snap = await getDocs(q);
-    const logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    let logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    logs = logs.sort((a,b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)).slice(0, 50);
     const el   = document.getElementById('activityList');
 
     if (!logs.length) {

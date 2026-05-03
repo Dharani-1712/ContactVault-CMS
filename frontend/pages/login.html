@@ -18,44 +18,44 @@
     <!-- Right Panel -->
     <div class="auth-right">
       <div class="auth-form-wrapper">
-        <h1 class="auth-heading" style="color: white;">Welcome back</h1>
-        <p class="auth-subheading" style="color: rgba(255,255,255,0.7);">Sign in to your account</p>
+        <h1 class="auth-heading">Welcome back</h1>
+        <p class="auth-subheading">Sign in to your account</p>
 
         <!-- Role Toggle -->
         <div class="role-toggle" id="roleToggle">
           <div class="role-option selected" data-role="user" onclick="selectRole('user',this)">
             <div class="role-option-icon">👤</div>
-            <div class="role-option-label" style="color:white;">User</div>
+            <div class="role-option-label">User</div>
           </div>
           <div class="role-option" data-role="admin" onclick="selectRole('admin',this)">
             <div class="role-option-icon">🛡️</div>
-            <div class="role-option-label" style="color:white;">Admin</div>
+            <div class="role-option-label">Admin</div>
           </div>
         </div>
 
         <div id="errorMsg" class="form-error mb-4 hidden"></div>
 
         <div class="form-group">
-          <label style="color:rgba(255,255,255,0.7);">Email Address</label>
-          <input type="email" id="email" placeholder="you@example.com" style="background:rgba(0,0,0,0.3); border-color:rgba(255,255,255,0.1); color:white;"/>
+          <label>Email Address</label>
+          <input type="email" id="email" placeholder="you@example.com" />
         </div>
         <div class="form-group">
-          <label style="color:rgba(255,255,255,0.7);">Password</label>
-          <input type="password" id="password" placeholder="••••••••" style="background:rgba(0,0,0,0.3); border-color:rgba(255,255,255,0.1); color:white;"/>
+          <label>Password</label>
+          <input type="password" id="password" placeholder="••••••••" />
         </div>
 
         <button class="btn btn-primary w-full btn-lg mt-2" id="loginBtn" onclick="handleLogin()">
           Sign In
         </button>
 
-        <div class="auth-divider" style="color:rgba(255,255,255,0.3);">or</div>
+        <div class="auth-divider">or</div>
 
-        <button class="btn btn-secondary w-full" onclick="handleGoogleLogin()" style="background:rgba(255,255,255,0.1); color:white; border-color:rgba(255,255,255,0.2);">
+        <button class="btn btn-secondary w-full btn-lg" onclick="handleGoogleLogin()">
           <span>🔵</span> Continue with Google
         </button>
 
-        <p class="auth-footer-text" style="color:rgba(255,255,255,0.6);">
-          Don't have an account? <a href="register.html" style="color:#3b82f6;">Create one →</a>
+        <p class="auth-footer-text">
+          Don't have an account? <a href="register.html">Create one →</a>
         </p>
       </div>
     </div>
