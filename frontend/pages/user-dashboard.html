@@ -708,20 +708,32 @@
   };
 
   window.deleteContact = async (id, name) => {
-    if (!confirm(`Delete "${name}"?`)) return;
+    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
     try {
+      // 1. Delete the contact document
       await deleteDoc(doc(db, 'contacts', id));
-      // Remove from favorites
-      const q = query(collection(db,'favorites'), where('contactId','==',id));
-      const snap = await getDocs(q);
-      snap.docs.forEach(d => deleteDoc(d.ref));
+
+      // 2. Remove from local favorites set & re-render
       favorites.delete(id);
-      await logActivity('DELETE_CONTACT', { contactId: id, name });
-      toast('Contact deleted', 'success');
-      await loadContacts();
-      loadFavorites();
+
+      // 3. Clean up favorite docs without a compound query (avoids index error)
+      try {
+        const favSnap = await getDocs(query(collection(db,'favorites'), where('contactId','==',id)));
+        favSnap.docs.forEach(d => deleteDoc(d.ref));
+      } catch(_) {}
+
+      // 4. Remove from local array immediately (no reload flicker)
+      allContacts = allContacts.filter(c => c.id !== id);
+      document.getElementById('contactCountBadge').textContent = allContacts.length;
+      renderContacts(allContacts);
+      renderFavorites();
       renderDashboard();
-    } catch(e) { toast(e.message,'error'); }
+
+      await logActivity('DELETE_CONTACT', { contactId: id, name });
+      toast(`"${name}" deleted`, 'success');
+    } catch(e) {
+      toast('Delete failed: ' + e.message, 'error');
+    }
   };
 
   // ── View Contact (Digital Card) ───────────────────────────────
