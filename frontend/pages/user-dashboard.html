@@ -507,9 +507,10 @@
 
   // ── Contacts ──────────────────────────────────────────────────
   async function loadContacts() {
-    const q    = query(collection(db, 'contacts'), where('userId','==',currentUser.uid), orderBy('createdAt','desc'));
+    const q    = query(collection(db, 'contacts'), where('userId','==',currentUser.uid));
     const snap = await getDocs(q);
     allContacts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    allContacts.sort((a,b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
     document.getElementById('contactCountBadge').textContent = allContacts.length;
     renderContacts(allContacts);
   }
