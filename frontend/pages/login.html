@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login – ContactVault CMS</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+</head>
+<body>
+<div class="auth-page">
+  <!-- Left Panel -->
+  <div class="auth-left">
+    <div class="auth-hero-logo">Contact<span>Vault</span></div>
+    <p class="auth-hero-text">The smart way to manage, organise, and connect with every person that matters.</p>
+  </div>
+
+  <!-- Right Panel -->
+  <div class="auth-right">
+    <div class="auth-form-wrapper">
+      <h1 class="auth-heading">Welcome back</h1>
+      <p class="auth-subheading">Sign in to your account</p>
+
+      <!-- Role Toggle -->
+      <div class="role-toggle" id="roleToggle">
+        <div class="role-option selected" data-role="user" onclick="selectRole('user',this)">
+          <div class="role-option-icon">👤</div>
+          <div class="role-option-label">User</div>
+        </div>
+        <div class="role-option" data-role="admin" onclick="selectRole('admin',this)">
+          <div class="role-option-icon">🛡️</div>
+          <div class="role-option-label">Admin</div>
+        </div>
+      </div>
+
+      <div id="errorMsg" class="form-error mb-4 hidden"></div>
+
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input type="email" id="email" placeholder="you@example.com" />
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="••••••••" />
+      </div>
+
+      <button class="btn btn-primary w-full btn-lg mt-2" id="loginBtn" onclick="handleLogin()">
+        Sign In
+      </button>
+
+      <div class="auth-divider">or</div>
+
+      <button class="btn btn-secondary w-full" onclick="handleGoogleLogin()">
+        <span>🔵</span> Continue with Google
+      </button>
+
+      <p class="auth-footer-text">
+        Don't have an account? <a href="register.html">Create one →</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import {
+    getAuth, signInWithEmailAndPassword, GoogleAuthProvider,
+    signInWithPopup
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  // TODO: Replace with your Firebase config
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_MSG_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  const app  = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db   = getFirestore(app);
+
+  let selectedRole = 'user';
+
+  window.selectRole = (role, el) => {
+    selectedRole = role;
+    document.querySelectorAll('.role-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+  };
+
+  window.showError = (msg) => {
+    const el = document.getElementById('errorMsg');
+    el.textContent = msg;
+    el.classList.remove('hidden');
+  };
+
+  window.toast = (msg, type = 'info') => {
+    const c = document.getElementById('toastContainer');
+    const t = document.createElement('div');
+    t.className = `toast ${type}`;
+    const icons = { success:'✅', error:'❌', warning:'⚠️', info:'ℹ️' };
+    t.innerHTML = `<span class="toast-icon">${icons[type]||'ℹ️'}</span>
+                   <span class="toast-message">${msg}</span>`;
+    c.appendChild(t);
+    setTimeout(() => t.remove(), 4000);
+  };
+
+  const redirectByRole = async (uid) => {
+    const snap = await getDoc(doc(db, 'users', uid));
+    if (!snap.exists()) { window.showError('Profile not found. Please register.'); return; }
+    const role = snap.data().role;
+    localStorage.setItem('userRole', role);
+    localStorage.setItem('uid', uid);
+    if (role === 'admin') window.location.href = '../pages/admin-dashboard.html';
+    else                  window.location.href = '../pages/user-dashboard.html';
+  };
+
+  window.handleLogin = async () => {
+    const email    = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const btn      = document.getElementById('loginBtn');
+
+    if (!email || !password) { window.showError('Please fill in all fields.'); return; }
+
+    btn.disabled = true;
+    btn.textContent = 'Signing in…';
+
+    try {
+      const { user } = await signInWithEmailAndPassword(auth, email, password);
+      localStorage.setItem('idToken', await user.getIdToken());
+      await redirectByRole(user.uid);
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'Sign In';
+      const msgs = {
+        'auth/user-not-found': 'No account found with this email.',
+        'auth/wrong-password': 'Incorrect password.',
+        'auth/invalid-email' : 'Invalid email address.',
+        'auth/too-many-requests': 'Too many attempts. Try again later.'
+      };
+      window.showError(msgs[err.code] || err.message);
+    }
+  };
+
+  window.handleGoogleLogin = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      const { user } = await signInWithPopup(auth, provider);
+      localStorage.setItem('idToken', await user.getIdToken());
+      await redirectByRole(user.uid);
+    } catch (err) {
+      window.showError(err.message);
+    }
+  };
+
+  // Allow Enter key
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') window.handleLogin();
+  });
+</script>
+</body>
+</html>

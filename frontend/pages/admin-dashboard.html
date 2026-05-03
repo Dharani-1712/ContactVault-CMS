@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin – ContactVault</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">🛡️</div>
+      <div>
+        <div class="sidebar-logo-text">ContactVault</div>
+        <div style="font-size:.65rem;color:rgba(255,255,255,.4);letter-spacing:.06em;">ADMIN PANEL</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <button class="nav-item active" id="nav-overview" onclick="showSection('overview')">
+        <span class="nav-icon">📊</span> Analytics
+      </button>
+
+      <div class="nav-section-label" style="margin-top:12px;">Management</div>
+      <button class="nav-item" id="nav-users" onclick="showSection('users')">
+        <span class="nav-icon">👥</span> Users
+        <span class="nav-badge" id="userCountBadge">0</span>
+      </button>
+      <button class="nav-item" id="nav-contacts" onclick="showSection('contacts')">
+        <span class="nav-icon">📇</span> All Contacts
+        <span class="nav-badge" id="contactCountBadge">0</span>
+      </button>
+      <button class="nav-item" id="nav-logs" onclick="showSection('logs')">
+        <span class="nav-icon">📋</span> Activity Logs
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="sidebarAvatar">A</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebarName">Admin</div>
+          <div class="sidebar-user-role">Administrator</div>
+        </div>
+      </div>
+      <button class="btn btn-ghost w-full mt-2" style="color:rgba(255,255,255,.5);" onclick="logout()">
+        🚪 Sign Out
+      </button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <header class="topbar">
+      <button class="icon-btn" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+      <h1 class="topbar-title" id="topbarTitle">Analytics</h1>
+      <div style="flex:1;"></div>
+      <div class="topbar-actions">
+        <button class="icon-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
+      </div>
+    </header>
+
+    <!-- ── Analytics Section ── -->
+    <section class="page-content" id="section-overview">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">System Analytics</h2>
+          <p class="page-subtitle">Real-time platform overview</p>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="loadAll()">🔄 Refresh</button>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon blue">👥</div>
+          <div class="stat-value" id="stat-users">—</div>
+          <div class="stat-label">Total Users</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">📇</div>
+          <div class="stat-value" id="stat-contacts">—</div>
+          <div class="stat-label">Total Contacts</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon yellow">📁</div>
+          <div class="stat-value" id="stat-groups">—</div>
+          <div class="stat-label">Total Groups</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon red">🆕</div>
+          <div class="stat-value" id="stat-week">—</div>
+          <div class="stat-label">Added This Week</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Contacts by Group</div>
+          </div>
+          <div id="groupChart"></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Recent Activity</div>
+          </div>
+          <div class="log-list" id="recentLogs" style="max-height:300px;overflow-y:auto;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Users Section ── -->
+    <section class="page-content hidden" id="section-users">
+      <div class="page-header">
+        <h2 class="page-title">User Management</h2>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead><tr>
+            <th>User</th><th>Email</th><th>Role</th>
+            <th>Joined</th><th>Contacts</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="usersTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── All Contacts Section ── -->
+    <section class="page-content hidden" id="section-contacts">
+      <div class="page-header">
+        <h2 class="page-title">All Contacts</h2>
+        <div class="search-bar" style="max-width:320px;">
+          <span>🔍</span>
+          <input type="text" placeholder="Search…" oninput="filterAdminContacts(this.value)" />
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead><tr>
+            <th>Contact</th><th>Phone</th><th>Email</th>
+            <th>Owner</th><th>Groups</th><th>Added</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="adminContactsBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── Logs Section ── -->
+    <section class="page-content hidden" id="section-logs">
+      <div class="page-header">
+        <h2 class="page-title">Activity Logs</h2>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div class="log-list" id="allLogsBody" style="max-height:600px;overflow-y:auto;"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="../js/app.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import {
+    getFirestore, collection, doc, getDoc, getDocs,
+    deleteDoc, updateDoc, query, where, orderBy, limit
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_MSG_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  const fbApp  = initializeApp(firebaseConfig);
+  const auth   = getAuth(fbApp);
+  const db     = getFirestore(fbApp);
+
+  let allUsers    = [];
+  let allContacts = [];
+  let allGroups   = [];
+  let allLogs     = [];
+
+  onAuthStateChanged(auth, async user => {
+    if (!user) { window.location.href = 'login.html'; return; }
+
+    const uDoc = await getDoc(doc(db, 'users', user.uid));
+    if (!uDoc.exists() || uDoc.data().role !== 'admin') {
+      alert('Admin access required.');
+      window.location.href = 'user-dashboard.html';
+      return;
+    }
+    const uData = uDoc.data();
+    document.getElementById('sidebarName').textContent   = uData.name || 'Admin';
+    document.getElementById('sidebarAvatar').innerHTML   = avatarHtml(uData, 36);
+    await loadAll();
+  });
+
+  window.loadAll = async () => {
+    await Promise.all([loadUsers(), loadContacts(), loadGroups(), loadLogs()]);
+    renderAnalytics();
+  };
+
+  async function loadUsers() {
+    const snap = await getDocs(collection(db, 'users'));
+    allUsers   = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    document.getElementById('userCountBadge').textContent = allUsers.length;
+    renderUsers();
+  }
+
+  async function loadContacts() {
+    const snap  = await getDocs(query(collection(db,'contacts'), orderBy('createdAt','desc')));
+    allContacts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    document.getElementById('contactCountBadge').textContent = allContacts.length;
+    renderAdminContacts(allContacts);
+  }
+
+  async function loadGroups() {
+    const snap = await getDocs(collection(db, 'groups'));
+    allGroups  = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  }
+
+  async function loadLogs() {
+    const q    = query(collection(db,'activityLogs'), orderBy('createdAt','desc'), limit(200));
+    const snap = await getDocs(q);
+    allLogs    = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderLogs(allLogs.slice(0,20), 'recentLogs');
+    renderLogs(allLogs, 'allLogsBody');
+  }
+
+  function renderAnalytics() {
+    document.getElementById('stat-users').textContent    = allUsers.length;
+    document.getElementById('stat-contacts').textContent = allContacts.length;
+    document.getElementById('stat-groups').textContent   = allGroups.length;
+
+    const weekAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString();
+    document.getElementById('stat-week').textContent = allContacts.filter(c => c.createdAt > weekAgo).length;
+
+    // Group chart
+    const groupCounts = {};
+    allContacts.forEach(c => (c.groups||[]).forEach(g => groupCounts[g] = (groupCounts[g]||0)+1));
+    const entries = Object.entries(groupCounts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    const max     = entries[0]?.[1] || 1;
+    const gc      = document.getElementById('groupChart');
+    gc.innerHTML  = entries.length
+      ? entries.map(([g,n]) => `
+          <div class="chart-bar-row">
+            <div class="chart-bar-label">${g}</div>
+            <div class="chart-bar-track"><div class="chart-bar-fill" style="width:${Math.round(n/max*100)}%"></div></div>
+            <div class="chart-bar-value">${n}</div>
+          </div>`).join('')
+      : `<div class="text-muted text-sm" style="padding:20px;">No group data</div>`;
+  }
+
+  function renderUsers() {
+    const tbody = document.getElementById('usersTableBody');
+    if (!allUsers.length) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-muted);">No users found</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = allUsers.map(u => {
+      const cCount = allContacts.filter(c => c.userId === u.uid).length;
+      return `<tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px;">
+            ${avatarHtml(u, 34)}
+            <div class="font-bold">${u.name || '—'}</div>
+          </div>
+        </td>
+        <td class="text-sm">${u.email||'—'}</td>
+        <td>
+          <select class="badge badge-${u.role==='admin'?'red':'blue'}"
+            onchange="changeRole('${u.uid}',this.value)"
+            style="border:none;background:none;cursor:pointer;font-size:.7rem;font-weight:600;">
+            <option value="user"  ${u.role==='user' ?'selected':''}>User</option>
+            <option value="admin" ${u.role==='admin'?'selected':''}>Admin</option>
+          </select>
+        </td>
+        <td class="text-sm text-muted">${fmtDate(u.createdAt)}</td>
+        <td class="text-sm">${cCount}</td>
+        <td>
+          <button class="btn btn-sm btn-danger" onclick="deleteUser('${u.uid}','${(u.name||'').replace(/'/g,"\\'")}')">Delete</button>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderAdminContacts(contacts) {
+    const tbody = document.getElementById('adminContactsBody');
+    if (!contacts.length) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted);">No contacts</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = contacts.map(c => {
+      const owner = allUsers.find(u => u.uid === c.userId);
+      return `<tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px;">
+            ${avatarHtml(c,32)}
+            <div class="font-bold text-sm">${c.name}</div>
+          </div>
+        </td>
+        <td class="text-sm">${c.phone||'—'}</td>
+        <td class="text-sm">${c.email||'—'}</td>
+        <td class="text-sm text-muted">${owner?.name||c.userId?.slice(0,8)||'?'}</td>
+        <td>${(c.groups||[]).map(g=>`<span class="badge badge-blue">${g}</span>`).join(' ')||'—'}</td>
+        <td class="text-sm text-muted">${fmtDate(c.createdAt)}</td>
+        <td>
+          <button class="btn btn-sm btn-danger" onclick="adminDeleteContact('${c.id}','${c.name.replace(/'/g,"\\'")}')">Delete</button>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderLogs(logs, containerId) {
+    const el = document.getElementById(containerId);
+    if (!logs.length) {
+      el.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">No logs</div></div>`;
+      return;
+    }
+    el.innerHTML = logs.map(l => {
+      const user = allUsers.find(u => u.uid === l.userId);
+      return `<div class="log-item">
+        <div class="log-dot ${logDotClass(l.action)}"></div>
+        <div>
+          <div class="log-action">${l.action.replace(/_/g,' ')}</div>
+          <div class="text-sm text-muted">${user?.name||l.userId?.slice(0,8)||'?'} · ${fmtDateTime(l.timestamp)}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  window.changeRole = async (uid, role) => {
+    try {
+      await updateDoc(doc(db,'users',uid), { role });
+      toast(`Role changed to ${role} ✅`, 'success');
+      await loadUsers();
+    } catch(e) { toast(e.message,'error'); }
+  };
+
+  window.deleteUser = async (uid, name) => {
+    if (!confirm(`Delete user "${name}" and all their data?`)) return;
+    try {
+      // Delete user's contacts
+      const q = query(collection(db,'contacts'), where('userId','==',uid));
+      const snap = await getDocs(q);
+      for (const d of snap.docs) await deleteDoc(d.ref);
+      await deleteDoc(doc(db,'users',uid));
+      toast('User deleted ✅','success');
+      await loadAll();
+    } catch(e) { toast(e.message,'error'); }
+  };
+
+  window.adminDeleteContact = async (id, name) => {
+    if (!confirm(`Delete contact "${name}"?`)) return;
+    try {
+      await deleteDoc(doc(db,'contacts',id));
+      toast('Contact deleted ✅','success');
+      await loadContacts();
+      renderAnalytics();
+    } catch(e) { toast(e.message,'error'); }
+  };
+
+  window.filterAdminContacts = (q) => {
+    if (!q.trim()) { renderAdminContacts(allContacts); return; }
+    const s = q.toLowerCase();
+    renderAdminContacts(allContacts.filter(c =>
+      c.name?.toLowerCase().includes(s) || c.phone?.includes(s) || c.email?.toLowerCase().includes(s)
+    ));
+  };
+
+  window.showSection = (name) => {
+    document.querySelectorAll('[id^="section-"]').forEach(s => s.classList.add('hidden'));
+    document.getElementById(`section-${name}`)?.classList.remove('hidden');
+    const titles = { overview:'Analytics', users:'Users', contacts:'All Contacts', logs:'Activity Logs' };
+    document.getElementById('topbarTitle').textContent = titles[name] || '';
+    setActiveNav(`nav-${name}`);
+  };
+
+  const themeBtn = document.getElementById('themeBtn');
+  if (themeBtn) themeBtn.textContent = localStorage.getItem('theme')==='dark'?'☀️':'🌙';
+</script>
+</body>
+</html>

@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard – ContactVault</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+</head>
+<body>
+
+<!-- ══════════════════════════ APP LAYOUT ══════════════════════ -->
+<div class="app-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">📇</div>
+      <div>
+        <div class="sidebar-logo-text">ContactVault</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <button class="nav-item active" id="nav-dashboard" onclick="showSection('dashboard')">
+        <span class="nav-icon">🏠</span> Dashboard
+      </button>
+      <button class="nav-item" id="nav-contacts" onclick="showSection('contacts')">
+        <span class="nav-icon">👥</span> Contacts
+        <span class="nav-badge" id="contactCountBadge">0</span>
+      </button>
+      <button class="nav-item" id="nav-favorites" onclick="showSection('favorites')">
+        <span class="nav-icon">❤️</span> Favorites
+      </button>
+      <button class="nav-item" id="nav-groups" onclick="showSection('groups')">
+        <span class="nav-icon">📁</span> Groups
+      </button>
+
+      <div class="nav-section-label" style="margin-top:12px;">Tools</div>
+      <button class="nav-item" id="nav-import" onclick="showSection('import')">
+        <span class="nav-icon">📥</span> Import / Export
+      </button>
+      <button class="nav-item" id="nav-activity" onclick="showSection('activity')">
+        <span class="nav-icon">📋</span> Activity Log
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user" onclick="showSection('profile')">
+        <div class="sidebar-avatar" id="sidebarAvatar">?</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebarName">Loading…</div>
+          <div class="sidebar-user-role">User</div>
+        </div>
+      </div>
+      <button class="btn btn-ghost w-full mt-2" style="color:rgba(255,255,255,.5);" onclick="logout()">
+        🚪 Sign Out
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Topbar -->
+    <header class="topbar">
+      <button class="icon-btn" id="sidebarToggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+      <h1 class="topbar-title" id="topbarTitle">Dashboard</h1>
+      <div class="search-bar" id="globalSearchBar">
+        <span>🔍</span>
+        <input type="text" id="globalSearch" placeholder="Search contacts…" oninput="handleSearch(this.value)" />
+      </div>
+      <div class="topbar-actions">
+        <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
+        <button class="btn btn-primary btn-sm" onclick="openAddContact()">+ Add Contact</button>
+      </div>
+    </header>
+
+    <!-- ── SECTION: Dashboard ── -->
+    <section class="page-content" id="section-dashboard">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">Good morning 👋</h2>
+          <p class="page-subtitle">Here's your contact overview</p>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon blue">👥</div>
+          <div class="stat-value" id="stat-total">—</div>
+          <div class="stat-label">Total Contacts</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon red">❤️</div>
+          <div class="stat-value" id="stat-favs">—</div>
+          <div class="stat-label">Favorites</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">📁</div>
+          <div class="stat-value" id="stat-groups">—</div>
+          <div class="stat-label">Groups</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon yellow">🆕</div>
+          <div class="stat-value" id="stat-recent">—</div>
+          <div class="stat-label">Added This Week</div>
+        </div>
+      </div>
+
+      <!-- Recent + Activity side by side -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;flex-wrap:wrap;">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Recent Contacts</div>
+            <button class="btn btn-ghost btn-sm" onclick="showSection('contacts')">View All</button>
+          </div>
+          <div id="recentContactsList"><div class="loading-center"><div class="spinner"></div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Contacts by Group</div>
+          </div>
+          <div id="groupChart"><div class="loading-center"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SECTION: Contacts ── -->
+    <section class="page-content hidden" id="section-contacts">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">Contacts</h2>
+          <p class="page-subtitle" id="contactsSubtitle">All your contacts</p>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-secondary btn-sm" onclick="exportCSV()">⬇ Export CSV</button>
+          <button class="btn btn-primary" onclick="openAddContact()">+ Add Contact</button>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters-bar" id="filtersBar">
+        <div class="filter-chip active" onclick="setFilter(null,this)">All</div>
+        <select id="groupFilter" class="filter-chip" style="padding:6px 12px;border-radius:20px;" onchange="applyFilters()">
+          <option value="">All Groups</option>
+        </select>
+        <select id="sortFilter" class="filter-chip" style="padding:6px 12px;border-radius:20px;" onchange="applyFilters()">
+          <option value="name-asc">A → Z</option>
+          <option value="name-desc">Z → A</option>
+          <option value="createdAt-desc">Newest First</option>
+          <option value="createdAt-asc">Oldest First</option>
+        </select>
+        <div class="tabs" style="margin-left:auto;">
+          <button class="tab-btn active" onclick="setViewMode('grid',this)">⊞ Grid</button>
+          <button class="tab-btn" onclick="setViewMode('table',this)">☰ List</button>
+        </div>
+      </div>
+
+      <!-- Grid View -->
+      <div class="contacts-grid" id="contactsGrid"></div>
+
+      <!-- Table View -->
+      <div class="table-wrapper hidden" id="contactsTable">
+        <table>
+          <thead><tr>
+            <th>Name</th><th>Phone</th><th>Email</th>
+            <th>Groups</th><th>Added</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="contactsTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── SECTION: Favorites ── -->
+    <section class="page-content hidden" id="section-favorites">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">Favorites ❤️</h2>
+          <p class="page-subtitle">Contacts you love most</p>
+        </div>
+      </div>
+      <div class="contacts-grid" id="favoritesGrid"></div>
+    </section>
+
+    <!-- ── SECTION: Groups ── -->
+    <section class="page-content hidden" id="section-groups">
+      <div class="page-header">
+        <h2 class="page-title">Groups</h2>
+        <button class="btn btn-primary" onclick="openAddGroup()">+ New Group</button>
+      </div>
+      <div id="groupsList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;"></div>
+    </section>
+
+    <!-- ── SECTION: Import/Export ── -->
+    <section class="page-content hidden" id="section-import">
+      <div class="page-header">
+        <h2 class="page-title">Import / Export</h2>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:12px;">📥 Import Contacts (CSV)</div>
+          <p class="text-sm text-muted" style="margin-bottom:16px;">
+            CSV headers: <code>name, phone, email, address, notes, groups</code>
+          </p>
+          <input type="file" id="csvFile" accept=".csv" style="margin-bottom:12px;" onchange="previewCSV(this)" />
+          <div id="importPreview" class="hidden" style="margin-bottom:12px;max-height:200px;overflow-y:auto;font-size:.78rem;border:1px solid var(--border);border-radius:8px;padding:8px;background:var(--bg-input);"></div>
+          <button class="btn btn-primary w-full" onclick="importCSV()">Import Contacts</button>
+        </div>
+        <div class="card">
+          <div class="card-title" style="margin-bottom:12px;">⬆️ Export Contacts (CSV)</div>
+          <p class="text-sm text-muted" style="margin-bottom:16px;">Download all your contacts as a CSV file.</p>
+          <button class="btn btn-secondary w-full" onclick="exportCSV()">⬇ Download CSV</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SECTION: Activity Log ── -->
+    <section class="page-content hidden" id="section-activity">
+      <div class="page-header">
+        <h2 class="page-title">Activity Log</h2>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div class="log-list" id="activityList"><div class="loading-center"><div class="spinner"></div></div></div>
+      </div>
+    </section>
+
+    <!-- ── SECTION: Profile ── -->
+    <section class="page-content hidden" id="section-profile">
+      <div class="page-header">
+        <h2 class="page-title">My Profile</h2>
+      </div>
+      <div class="card" style="max-width:500px;">
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;">
+          <div class="contact-avatar" id="profileAvatar" style="width:72px;height:72px;font-size:1.6rem;">?</div>
+          <div>
+            <div style="font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:700;" id="profileName">—</div>
+            <div style="color:var(--text-secondary);font-size:.875rem;" id="profileEmail">—</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Display Name</label>
+          <input type="text" id="profileNameInput" />
+        </div>
+        <div class="form-group">
+          <label>Photo URL</label>
+          <input type="text" id="profilePhotoInput" placeholder="https://..." />
+        </div>
+        <button class="btn btn-primary" onclick="updateProfile()">Save Changes</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ══════════════════════════ MODALS ══════════════════════════ -->
+
+<!-- Add/Edit Contact Modal -->
+<div class="modal-overlay hidden" id="contactModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="contactModalTitle">Add Contact</div>
+      <button class="modal-close" onclick="closeModal('contactModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="dupWarning" class="dup-warning hidden">
+        <span class="dup-warning-icon">⚠️</span>
+        <div class="dup-warning-text">
+          <div class="dup-warning-title">Duplicate Detected!</div>
+          <div id="dupWarningMsg">A contact with this phone or email already exists.</div>
+          <div class="dup-warning-actions">
+            <button class="btn btn-sm btn-secondary" onclick="forceSave()">Save Anyway</button>
+            <button class="btn btn-sm btn-ghost" onclick="closeModal('contactModal')">Cancel</button>
+          </div>
+        </div>
+      </div>
+      <input type="hidden" id="editContactId" />
+      <div class="form-row">
+        <div class="form-group">
+          <label>Full Name *</label>
+          <input type="text" id="cName" placeholder="Jane Smith" />
+        </div>
+        <div class="form-group">
+          <label>Phone</label>
+          <input type="tel" id="cPhone" placeholder="+1 555 000 0000" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="cEmail" placeholder="jane@example.com" />
+      </div>
+      <div class="form-group">
+        <label>Address</label>
+        <input type="text" id="cAddress" placeholder="123 Main St, City" />
+      </div>
+      <div class="form-group">
+        <label>Groups</label>
+        <div id="groupCheckboxes" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;"></div>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="cNotes" placeholder="Any notes…"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Photo URL</label>
+        <input type="text" id="cPhoto" placeholder="https://…" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('contactModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveContact()">Save Contact</button>
+    </div>
+  </div>
+</div>
+
+<!-- View Contact / Digital Card Modal -->
+<div class="modal-overlay hidden" id="viewModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Contact Card</div>
+      <button class="modal-close" onclick="closeModal('viewModal')">✕</button>
+    </div>
+    <div class="modal-body" id="viewModalBody" style="display:flex;flex-direction:column;align-items:center;gap:16px;"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="viewEditBtn" onclick="">Edit</button>
+      <button class="btn btn-danger"    id="viewDeleteBtn" onclick="">Delete</button>
+      <button class="btn btn-ghost"     onclick="closeModal('viewModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Group Modal -->
+<div class="modal-overlay hidden" id="groupModal">
+  <div class="modal" style="max-width:380px;">
+    <div class="modal-header">
+      <div class="modal-title">New Group</div>
+      <button class="modal-close" onclick="closeModal('groupModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Group Name</label>
+        <input type="text" id="groupName" placeholder="e.g. Family, Work, Friends" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('groupModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveGroup()">Create Group</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ══════════════════════════ SCRIPTS ══════════════════════════ -->
+<script src="../js/app.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import {
+    getAuth, onAuthStateChanged, updateProfile as fbUpdateProfile
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import {
+    getFirestore, collection, doc,
+    getDocs, addDoc, updateDoc, deleteDoc, getDoc,
+    query, where, orderBy, limit, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_MSG_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  const fbApp  = initializeApp(firebaseConfig);
+  const fbAuth = getAuth(fbApp);
+  const db     = getFirestore(fbApp);
+
+  // ── State ─────────────────────────────────────────────────────
+  let currentUser = null;
+  let allContacts = [];
+  let allGroups   = [];
+  let favorites   = new Set();
+  let viewMode    = 'grid';
+  let currentFilter = null;
+  let editingContactId = null;
+
+  // ── Auth State ────────────────────────────────────────────────
+  onAuthStateChanged(fbAuth, async user => {
+    if (!user) { window.location.href = 'login.html'; return; }
+    currentUser = user;
+    localStorage.setItem('idToken', await user.getIdToken());
+
+    const uDoc = await getDoc(doc(db, 'users', user.uid));
+    const uData = uDoc.exists() ? uDoc.data() : {};
+    const name  = uData.name || user.displayName || 'User';
+
+    document.getElementById('sidebarName').textContent = name;
+    document.getElementById('sidebarAvatar').innerHTML = avatarHtml({ name, photoURL: uData.photoURL }, 36);
+
+    // Profile section
+    document.getElementById('profileName').textContent  = name;
+    document.getElementById('profileEmail').textContent = user.email;
+    document.getElementById('profileNameInput').value   = name;
+    document.getElementById('profilePhotoInput').value  = uData.photoURL || '';
+    document.getElementById('profileAvatar').innerHTML  = avatarHtml({ name, photoURL: uData.photoURL }, 72);
+
+    // Greeting
+    const hour = new Date().getHours();
+    const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    document.querySelector('#section-dashboard .page-title').textContent = `${greet}, ${name.split(' ')[0]} 👋`;
+
+    await loadAll();
+  });
+
+  // ── Load everything ───────────────────────────────────────────
+  async function loadAll() {
+    await Promise.all([loadGroups(), loadContacts(), loadFavorites(), loadActivity()]);
+    renderDashboard();
+  }
+
+  // ── Groups ────────────────────────────────────────────────────
+  async function loadGroups() {
+    const q    = query(collection(db, 'groups'), where('userId', '==', currentUser.uid));
+    const snap = await getDocs(q);
+    allGroups  = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderGroups();
+    populateGroupFilter();
+    populateGroupCheckboxes();
+  }
+
+  function renderGroups() {
+    const el = document.getElementById('groupsList');
+    if (!allGroups.length) {
+      el.innerHTML = `<div class="empty-state"><div class="empty-icon">📁</div>
+        <div class="empty-title">No Groups Yet</div>
+        <div class="empty-text">Create groups to organise your contacts</div></div>`;
+      return;
+    }
+    el.innerHTML = allGroups.map(g => {
+      const count = allContacts.filter(c => (c.groups || []).includes(g.name)).length;
+      return `<div class="card" style="cursor:pointer;" onclick="filterByGroup('${g.name}')">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="stat-icon blue" style="width:36px;height:36px;font-size:1rem;">📁</div>
+            <div>
+              <div class="font-bold">${g.name}</div>
+              <div class="text-sm text-muted">${count} contact${count!==1?'s':''}</div>
+            </div>
+          </div>
+          <button class="icon-btn" onclick="event.stopPropagation();deleteGroup('${g.id}','${g.name}')" title="Delete group">🗑</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function populateGroupFilter() {
+    const sel = document.getElementById('groupFilter');
+    sel.innerHTML = '<option value="">All Groups</option>' +
+      allGroups.map(g => `<option value="${g.name}">${g.name}</option>`).join('');
+  }
+
+  function populateGroupCheckboxes() {
+    const el = document.getElementById('groupCheckboxes');
+    el.innerHTML = allGroups.map(g =>
+      `<label style="display:flex;align-items:center;gap:6px;font-size:.85rem;cursor:pointer;">
+        <input type="checkbox" class="groupChk" value="${g.name}" />
+        ${g.name}
+      </label>`
+    ).join('') || '<span class="text-muted text-sm">No groups yet</span>';
+  }
+
+  window.openAddGroup = () => {
+    document.getElementById('groupName').value = '';
+    openModal('groupModal');
+  };
+
+  window.saveGroup = async () => {
+    const name = document.getElementById('groupName').value.trim();
+    if (!name) { toast('Group name required', 'warning'); return; }
+    try {
+      const ref = await addDoc(collection(db, 'groups'), {
+        name, userId: currentUser.uid, createdAt: new Date().toISOString()
+      });
+      await logActivity('CREATE_GROUP', { name });
+      toast('Group created ✅', 'success');
+      closeModal('groupModal');
+      await loadGroups();
+      renderDashboard();
+    } catch(e) { toast(e.message, 'error'); }
+  };
+
+  window.deleteGroup = async (id, name) => {
+    if (!confirm(`Delete group "${name}"?`)) return;
+    await deleteDoc(doc(db, 'groups', id));
+    await logActivity('DELETE_GROUP', { name });
+    toast('Group deleted', 'success');
+    await loadGroups();
+    renderDashboard();
+  };
+
+  window.filterByGroup = (name) => {
+    document.getElementById('groupFilter').value = name;
+    showSection('contacts');
+    applyFilters();
+  };
+
+  // ── Contacts ──────────────────────────────────────────────────
+  async function loadContacts() {
+    const q    = query(collection(db, 'contacts'), where('userId','==',currentUser.uid), orderBy('createdAt','desc'));
+    const snap = await getDocs(q);
+    allContacts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    document.getElementById('contactCountBadge').textContent = allContacts.length;
+    renderContacts(allContacts);
+  }
+
+  function renderContacts(contacts) {
+    document.getElementById('contactsSubtitle').textContent = `${contacts.length} contact${contacts.length!==1?'s':''}`;
+
+    if (!contacts.length) {
+      const empty = `<div class="empty-state" style="grid-column:1/-1;">
+        <div class="empty-icon">👥</div>
+        <div class="empty-title">No contacts found</div>
+        <div class="empty-text">Add your first contact to get started</div></div>`;
+      document.getElementById('contactsGrid').innerHTML = empty;
+      document.getElementById('contactsTableBody').innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted);">No contacts found</td></tr>`;
+      return;
+    }
+
+    // Grid view
+    document.getElementById('contactsGrid').innerHTML = contacts.map(c => contactCardHtml(c)).join('');
+
+    // Table view
+    document.getElementById('contactsTableBody').innerHTML = contacts.map(c => `
+      <tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px;">
+            ${avatarHtml(c, 34)}
+            <div>
+              <div class="font-bold">${c.name}</div>
+              ${c.notes ? `<div class="text-xs text-muted">${c.notes.slice(0,30)}…</div>` : ''}
+            </div>
+          </div>
+        </td>
+        <td>${c.phone || '—'}</td>
+        <td>${c.email || '—'}</td>
+        <td>${(c.groups||[]).map(g=>`<span class="badge badge-blue">${g}</span>`).join(' ') || '—'}</td>
+        <td class="text-sm text-muted">${fmtDate(c.createdAt)}</td>
+        <td>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-sm btn-secondary" onclick="viewContact('${c.id}')">View</button>
+            <button class="btn btn-sm btn-ghost" onclick="openEditContact('${c.id}')">Edit</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteContact('${c.id}','${c.name.replace(/'/g,"\\'")}')">Del</button>
+          </div>
+        </td>
+      </tr>`).join('');
+  }
+
+  function contactCardHtml(c) {
+    const isFav = favorites.has(c.id);
+    const groups = (c.groups || []).map(g => `<span class="badge badge-blue">${g}</span>`).join('');
+    return `<div class="contact-card" onclick="viewContact('${c.id}')">
+      <button class="contact-card-fav ${isFav?'active':''}"
+        onclick="event.stopPropagation();toggleFavorite('${c.id}',this)">
+        ${isFav ? '❤️' : '🤍'}
+      </button>
+      <div class="contact-avatar" style="width:64px;height:64px;">${avatarHtml(c,64)}</div>
+      <div class="contact-name">${c.name}</div>
+      <div class="contact-phone">${c.phone || '—'}</div>
+      <div class="contact-email">${c.email || '—'}</div>
+      <div class="contact-badges">${groups}</div>
+      <div class="contact-card-actions">
+        <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();openEditContact('${c.id}')">✏ Edit</button>
+        <button class="btn btn-sm btn-danger"    onclick="event.stopPropagation();deleteContact('${c.id}','${c.name.replace(/'/g,"\\'")}')">🗑</button>
+      </div>
+    </div>`;
+  }
+
+  // ── Favorites ─────────────────────────────────────────────────
+  async function loadFavorites() {
+    const q    = query(collection(db, 'favorites'), where('userId','==',currentUser.uid));
+    const snap = await getDocs(q);
+    favorites  = new Set(snap.docs.map(d => d.data().contactId));
+    renderFavorites();
+  }
+
+  function renderFavorites() {
+    const favContacts = allContacts.filter(c => favorites.has(c.id));
+    const el = document.getElementById('favoritesGrid');
+    if (!favContacts.length) {
+      el.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">
+        <div class="empty-icon">❤️</div>
+        <div class="empty-title">No Favorites Yet</div>
+        <div class="empty-text">Tap the heart on any contact to add them here</div></div>`;
+      return;
+    }
+    el.innerHTML = favContacts.map(c => contactCardHtml(c)).join('');
+  }
+
+  window.toggleFavorite = async (contactId, btn) => {
+    try {
+      if (favorites.has(contactId)) {
+        const q    = query(collection(db,'favorites'), where('userId','==',currentUser.uid), where('contactId','==',contactId));
+        const snap = await getDocs(q);
+        snap.docs.forEach(d => deleteDoc(d.ref));
+        favorites.delete(contactId);
+        btn.textContent = '🤍';
+        btn.classList.remove('active');
+        toast('Removed from favorites', 'info');
+        await logActivity('REMOVE_FAVORITE', { contactId });
+      } else {
+        await addDoc(collection(db,'favorites'), {
+          userId: currentUser.uid, contactId, createdAt: new Date().toISOString()
+        });
+        favorites.add(contactId);
+        btn.textContent = '❤️';
+        btn.classList.add('active');
+        toast('Added to favorites ❤️', 'success');
+        await logActivity('ADD_FAVORITE', { contactId });
+      }
+      renderFavorites();
+      document.getElementById('stat-favs').textContent = favorites.size;
+    } catch(e) { toast(e.message,'error'); }
+  };
+
+  // ── Add / Edit Contact ────────────────────────────────────────
+  window.openAddContact = () => {
+    editingContactId = null;
+    document.getElementById('contactModalTitle').textContent = 'Add Contact';
+    document.getElementById('editContactId').value = '';
+    ['cName','cPhone','cEmail','cAddress','cNotes','cPhoto'].forEach(id => document.getElementById(id).value = '');
+    document.querySelectorAll('.groupChk').forEach(cb => cb.checked = false);
+    document.getElementById('dupWarning').classList.add('hidden');
+    openModal('contactModal');
+  };
+
+  window.openEditContact = async (id) => {
+    const c = allContacts.find(x => x.id === id);
+    if (!c) return;
+    editingContactId = id;
+    document.getElementById('contactModalTitle').textContent = 'Edit Contact';
+    document.getElementById('editContactId').value = id;
+    document.getElementById('cName').value    = c.name    || '';
+    document.getElementById('cPhone').value   = c.phone   || '';
+    document.getElementById('cEmail').value   = c.email   || '';
+    document.getElementById('cAddress').value = c.address || '';
+    document.getElementById('cNotes').value   = c.notes   || '';
+    document.getElementById('cPhoto').value   = c.photoURL|| '';
+    document.querySelectorAll('.groupChk').forEach(cb => cb.checked = (c.groups||[]).includes(cb.value));
+    document.getElementById('dupWarning').classList.add('hidden');
+    openModal('contactModal');
+  };
+
+  window.saveContact = async (force = false) => {
+    const name    = document.getElementById('cName').value.trim();
+    const phone   = document.getElementById('cPhone').value.trim();
+    const email   = document.getElementById('cEmail').value.trim().toLowerCase();
+    const address = document.getElementById('cAddress').value.trim();
+    const notes   = document.getElementById('cNotes').value.trim();
+    const photoURL= document.getElementById('cPhoto').value.trim();
+    const groups  = [...document.querySelectorAll('.groupChk:checked')].map(cb => cb.value);
+
+    if (!name) { toast('Name is required', 'warning'); return; }
+
+    // Duplicate detection (skip if editing same contact)
+    if (!force && !editingContactId) {
+      const dups = allContacts.filter(c =>
+        (phone && c.phone === phone) || (email && c.email === email)
+      );
+      if (dups.length) {
+        const msg = `"${dups[0].name}" has the same ${phone===dups[0].phone?'phone':'email'}.`;
+        document.getElementById('dupWarningMsg').textContent = msg;
+        document.getElementById('dupWarning').classList.remove('hidden');
+        return;
+      }
+    }
+
+    const data = {
+      name, phone, email, address, notes, groups,
+      photoURL: photoURL || null,
+      userId: currentUser.uid,
+      updatedAt: new Date().toISOString()
+    };
+
+    try {
+      if (editingContactId) {
+        await updateDoc(doc(db, 'contacts', editingContactId), data);
+        await logActivity('UPDATE_CONTACT', { contactId: editingContactId, name });
+        toast('Contact updated ✅', 'success');
+      } else {
+        data.createdAt = new Date().toISOString();
+        data.isFavorite = false;
+        const ref = await addDoc(collection(db, 'contacts'), data);
+        await logActivity('CREATE_CONTACT', { contactId: ref.id, name });
+        toast('Contact added ✅', 'success');
+      }
+      closeModal('contactModal');
+      await loadContacts();
+      renderGroups();
+      renderDashboard();
+    } catch(e) { toast(e.message, 'error'); }
+  };
+
+  window.forceSave = () => {
+    document.getElementById('dupWarning').classList.add('hidden');
+    window.saveContact(true);
+  };
+
+  window.deleteContact = async (id, name) => {
+    if (!confirm(`Delete "${name}"?`)) return;
+    try {
+      await deleteDoc(doc(db, 'contacts', id));
+      // Remove from favorites
+      const q = query(collection(db,'favorites'), where('contactId','==',id));
+      const snap = await getDocs(q);
+      snap.docs.forEach(d => deleteDoc(d.ref));
+      favorites.delete(id);
+      await logActivity('DELETE_CONTACT', { contactId: id, name });
+      toast('Contact deleted', 'success');
+      await loadContacts();
+      loadFavorites();
+      renderDashboard();
+    } catch(e) { toast(e.message,'error'); }
+  };
+
+  // ── View Contact (Digital Card) ───────────────────────────────
+  window.viewContact = (id) => {
+    const c = allContacts.find(x => x.id === id);
+    if (!c) return;
+    document.getElementById('viewModalBody').innerHTML = generateContactCard(c);
+    document.getElementById('viewEditBtn').onclick   = () => { closeModal('viewModal'); openEditContact(id); };
+    document.getElementById('viewDeleteBtn').onclick = () => { closeModal('viewModal'); deleteContact(id, c.name); };
+    openModal('viewModal');
+  };
+
+  // ── Search ────────────────────────────────────────────────────
+  window.handleSearch = (q) => {
+    if (!q.trim()) { renderContacts(allContacts); return; }
+    const s = q.toLowerCase();
+    const filtered = allContacts.filter(c =>
+      c.name?.toLowerCase().includes(s) ||
+      c.phone?.includes(s) ||
+      c.email?.toLowerCase().includes(s)
+    );
+    renderContacts(filtered);
+    if (document.getElementById('section-contacts').classList.contains('hidden'))
+      showSection('contacts');
+  };
+
+  // ── Filters ───────────────────────────────────────────────────
+  window.applyFilters = () => {
+    const group = document.getElementById('groupFilter').value;
+    const sortVal = document.getElementById('sortFilter').value.split('-');
+    const [sortKey, sortDir] = sortVal;
+
+    let filtered = [...allContacts];
+    if (group) filtered = filtered.filter(c => (c.groups||[]).includes(group));
+
+    filtered.sort((a,b) => {
+      let va = a[sortKey] || '', vb = b[sortKey] || '';
+      if (sortKey === 'createdAt') { va = new Date(va); vb = new Date(vb); }
+      else { va = va.toLowerCase(); vb = vb.toLowerCase(); }
+      return sortDir === 'desc' ? (va < vb ? 1 : -1) : (va > vb ? 1 : -1);
+    });
+
+    renderContacts(filtered);
+  };
+
+  window.setFilter = (val, el) => {
+    currentFilter = val;
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    applyFilters();
+  };
+
+  // ── View mode ─────────────────────────────────────────────────
+  window.setViewMode = (mode, btn) => {
+    viewMode = mode;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('contactsGrid').classList.toggle('hidden', mode === 'table');
+    document.getElementById('contactsTable').classList.toggle('hidden', mode === 'grid');
+  };
+
+  // ── Activity Log ──────────────────────────────────────────────
+  async function loadActivity() {
+    const q    = query(collection(db,'activityLogs'), where('userId','==',currentUser.uid), orderBy('createdAt','desc'), limit(50));
+    const snap = await getDocs(q);
+    const logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const el   = document.getElementById('activityList');
+
+    if (!logs.length) {
+      el.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div>
+        <div class="empty-title">No Activity Yet</div></div>`;
+      return;
+    }
+
+    el.innerHTML = logs.map(l => `
+      <div class="log-item">
+        <div class="log-dot ${logDotClass(l.action)}"></div>
+        <div>
+          <div class="log-action">${l.action.replace(/_/g,' ')}</div>
+          ${l.details?.name ? `<div class="text-sm">${l.details.name}</div>` : ''}
+          <div class="log-time">${fmtDateTime(l.timestamp)}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  async function logActivity(action, details = {}) {
+    try {
+      await addDoc(collection(db,'activityLogs'), {
+        userId: currentUser.uid, action, details,
+        timestamp: new Date().toISOString(),
+        createdAt: serverTimestamp()
+      });
+    } catch {}
+  }
+
+  // ── Dashboard stats ───────────────────────────────────────────
+  function renderDashboard() {
+    document.getElementById('stat-total').textContent  = allContacts.length;
+    document.getElementById('stat-favs').textContent   = favorites.size;
+    document.getElementById('stat-groups').textContent = allGroups.length;
+
+    const weekAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString();
+    const recent  = allContacts.filter(c => c.createdAt > weekAgo).length;
+    document.getElementById('stat-recent').textContent = recent;
+
+    // Recent contacts list
+    const rl = document.getElementById('recentContactsList');
+    const recents = allContacts.slice(0,5);
+    rl.innerHTML = recents.length
+      ? recents.map(c => `
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);" class="contact-row">
+            ${avatarHtml(c,36)}
+            <div style="flex:1;min-width:0;">
+              <div class="font-bold text-sm">${c.name}</div>
+              <div class="text-xs text-muted">${c.phone||c.email||'No details'}</div>
+            </div>
+            <div class="text-xs text-muted">${fmtDate(c.createdAt)}</div>
+          </div>`).join('')
+      : `<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">No contacts yet</div></div>`;
+
+    // Group bar chart
+    const gc = document.getElementById('groupChart');
+    const groupCounts = {};
+    allContacts.forEach(c => (c.groups||[]).forEach(g => groupCounts[g] = (groupCounts[g]||0)+1));
+    const entries = Object.entries(groupCounts).sort((a,b)=>b[1]-a[1]).slice(0,6);
+    const max = entries[0]?.[1] || 1;
+
+    gc.innerHTML = entries.length
+      ? entries.map(([g,n]) => `
+          <div class="chart-bar-row">
+            <div class="chart-bar-label">${g}</div>
+            <div class="chart-bar-track">
+              <div class="chart-bar-fill" style="width:${Math.round(n/max*100)}%"></div>
+            </div>
+            <div class="chart-bar-value">${n}</div>
+          </div>`).join('')
+      : `<div class="text-muted text-sm" style="padding:20px;">No group data yet</div>`;
+  }
+
+  // ── CSV Export ────────────────────────────────────────────────
+  window.exportCSV = () => {
+    const headers = ['Name','Phone','Email','Address','Notes','Groups','Created At'];
+    const rows = allContacts.map(c => [
+      `"${c.name||''}"`, `"${c.phone||''}"`, `"${c.email||''}"`,
+      `"${c.address||''}"`, `"${(c.notes||'').replace(/"/g,'""')}"`,
+      `"${(c.groups||[]).join('; ')}"`, `"${c.createdAt||''}"`
+    ].join(','));
+    const csv = [headers.join(','),...rows].join('\n');
+    const a   = document.createElement('a');
+    a.href    = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+    a.download = `contacts_${Date.now()}.csv`;
+    a.click();
+    toast('Contacts exported ✅','success');
+  };
+
+  // ── CSV Import ────────────────────────────────────────────────
+  window.previewCSV = (input) => {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const rows = parseCSV(e.target.result).slice(0,5);
+      const el   = document.getElementById('importPreview');
+      el.classList.remove('hidden');
+      el.innerHTML = `<strong>Preview (first 5 rows):</strong><br>` +
+        rows.map(r => `${r.name||'?'} | ${r.phone||''} | ${r.email||''}`).join('<br>');
+    };
+    reader.readAsText(file);
+  };
+
+  window.importCSV = async () => {
+    const file = document.getElementById('csvFile').files[0];
+    if (!file) { toast('Select a CSV file first','warning'); return; }
+    const reader = new FileReader();
+    reader.onload = async e => {
+      const rows = parseCSV(e.target.result);
+      if (!rows.length) { toast('No data found in CSV','warning'); return; }
+      let count = 0;
+      for (const r of rows) {
+        if (!r.name) continue;
+        await addDoc(collection(db,'contacts'), {
+          name: r.name, phone: r.phone||'', email: r.email||'',
+          address: r.address||'', notes: r.notes||'',
+          groups: r.groups ? r.groups.split(';').map(g=>g.trim()) : [],
+          photoURL: null, isFavorite: false,
+          userId: currentUser.uid,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+        count++;
+      }
+      await logActivity('IMPORT_CONTACTS', { count });
+      toast(`${count} contacts imported ✅`, 'success');
+      await loadContacts();
+      renderDashboard();
+    };
+    reader.readAsText(file);
+  };
+
+  // ── Profile update ────────────────────────────────────────────
+  window.updateProfile = async () => {
+    const name     = document.getElementById('profileNameInput').value.trim();
+    const photoURL = document.getElementById('profilePhotoInput').value.trim() || null;
+    if (!name) { toast('Name required','warning'); return; }
+    try {
+      await updateDoc(doc(db,'users',currentUser.uid), { name, photoURL });
+      await fbUpdateProfile(currentUser, { displayName: name, photoURL: photoURL||'' });
+      toast('Profile updated ✅','success');
+      document.getElementById('sidebarName').textContent = name;
+      document.getElementById('profileName').textContent  = name;
+      document.getElementById('sidebarAvatar').innerHTML  = avatarHtml({ name, photoURL }, 36);
+      document.getElementById('profileAvatar').innerHTML  = avatarHtml({ name, photoURL }, 72);
+    } catch(e) { toast(e.message,'error'); }
+  };
+
+  // ── Section nav ───────────────────────────────────────────────
+  window.showSection = (name) => {
+    document.querySelectorAll('[id^="section-"]').forEach(s => s.classList.add('hidden'));
+    document.getElementById(`section-${name}`)?.classList.remove('hidden');
+
+    const titles = {
+      dashboard:'Dashboard', contacts:'Contacts', favorites:'Favorites',
+      groups:'Groups', import:'Import / Export', activity:'Activity Log', profile:'My Profile'
+    };
+    document.getElementById('topbarTitle').textContent = titles[name] || '';
+    setActiveNav(`nav-${name}`);
+
+    if (name === 'activity') loadActivity();
+  };
+
+  // ── Modal helpers ─────────────────────────────────────────────
+  window.openModal  = id => document.getElementById(id).classList.remove('hidden');
+  window.closeModal = id => document.getElementById(id).classList.add('hidden');
+
+  // Close modals on overlay click
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => {
+      if (e.target === overlay) overlay.classList.add('hidden');
+    });
+  });
+
+  // ── Theme button label ────────────────────────────────────────
+  const themeBtn = document.getElementById('themeBtn');
+  if (themeBtn) themeBtn.textContent = localStorage.getItem('theme') === 'dark' ? '☀️' : '🌙';
+</script>
+</body>
+</html>
